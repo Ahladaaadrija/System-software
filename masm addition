@@ -1,73 +1,106 @@
-ASSUME DS: DATA , CS: CODE
-DATA SEGMENT
-MSG1 DB 13,10, "ENTER FIRST NUMBER: $"
-MSG2 DB 13,10, "ENTER SECOND NUMBER: $"
-MSG3 DB 13,10, "SUM: $"
-DATA ENDS
+data segment
+    msg1 db 0Ah,0Dh,"Enter first number : $"
+    msg2 db 0Ah,0Dh,"Enter second number : $"
+    msg3 db 0Ah,0Dh,"Result is : $"
+    n1 db 07h dup(?)
+    n2 db 07h dup(?)
+data ends
 
-CODE SEGMENT
-START: MOV AX, DATA
-MOV DS, AX
+code segment
+assume cs:code, ds:data
 
-LEA DX, MSG1
-MOV AH, 09H
-INT 21H
+start:
+    mov ax, data
+    mov ds, ax
 
-MOV AH, 01H
-INT 21H
-MOV BH, AL
-MOV AH, 01H
-INT 21H
-MOV BL, AL
+   
+    mov si, offset n1
+    mov di, offset n2
 
-LEA DX, MSG2
-MOV AH, 09H
-INT 21H
+   
+    lea dx, msg1
+    mov ah, 09h
+    int 21h
 
-MOV AH, 01H
-INT 21H
-MOV CH, AL
-MOV AH, 01H
-INT 21H
-MOV CL, AL
+   
+    mov cl, 04h
 
-MOV AL,BL
-MOV AH, 00H
-ADD AL,CL
-AAA
 
-ADD AX, 3030H
-MOV BL, AL
+first:
+    mov ah, 01h
+    int 21h
+    sub al, 30h
+    mov [si], al
+    inc si
+    dec cl
+    jnz first
 
-MOV AL, AH
+   
+    lea dx, msg2
+    mov ah, 09h
+    int 21h
 
-MOV AH, 00H
-ADD AL, BH
-ADD AL, CH
-AAA
-ADD AX, 3030H
-MOV BH, AL
-MOV CL, AH
+   
+    mov cl, 04h
 
-LEA DX, MSG3
-MOV AH, 09H
-INT 21H ; PRINT "SUM: "
 
-MOV DL, CL
-MOV AH, 02H
-INT 21H
+second:
+    mov ah, 01h
+    int 21h
+    sub al, 30h
+    mov [di], al
+    inc di
+    dec cl
+    jnz second
+    clc
+    mov cl, 04h
 
-MOV DL, BH
 
-MOV AH, 02H
-INT 21H
+addition:
+    dec di
+    dec si
+    mov al, [si]
+    mov bl, [di]
+    adc al, bl
+    mov ah, 00h
+    aaa
+   
+    mov [di], al
+    dec cl
+    jnz addition
 
-MOV DL, BL
-MOV AH, 02H
-INT 21H
+   
+    lea dx, msg3
+    mov ah, 09h
+    int 21h
 
-MOV AH, 4CH
-INT 21H
+   
+    mov bh, 00h
+    mov dl, 30h
+    adc dl, 30h
+    cmp dl, 30h
+    je skip
 
-CODE ENDS
-END START
+   
+    mov ah, 02h
+    int 21h
+
+skip:
+   
+    mov cl, 04h
+
+
+print:
+    mov dl, [di]
+    add dl, 30h
+    mov ah, 02h
+    int 21h
+    inc di
+    dec cl
+    jnz print
+
+    mov ah, 4Ch
+    int 21h
+
+code ends
+end start
