@@ -1,0 +1,94 @@
+DATA SEGMENT
+    MSG1 DB 10,13,'ENTER THE STRING: $'
+    MSG2 DB 10,13,'NUMBER OF VOWELS: $'
+    STR1 DB 50 DUP(0)
+    VCOUNT DB 0
+DATA ENDS
+
+CODE SEGMENT
+ASSUME CS:CODE, DS:DATA
+
+START:  
+    MOV AX, DATA
+    MOV DS, AX
+
+    ; Prompt for input
+    LEA DX, MSG1
+    MOV AH, 09H
+    INT 21H
+
+    ; Read input string
+    LEA SI, STR1
+    LEA DI, STR1
+    MOV AH, 01H
+NEXTINPUT:
+    INT 21H
+    CMP AL, 0DH ; ENTER key
+    JE ENDINPUT
+    MOV [DI], AL ; Store input char
+    INC DI
+    JMP NEXTINPUT
+ENDINPUT:
+    MOV AL, '$' ; End of string for DOS
+    MOV [DI], AL
+
+    ; Vowel counting
+    LEA SI, STR1
+    MOV BL, 0 ; vowel count
+
+COUNTLOOP:
+    MOV AL, [SI]
+    CMP AL, '$'
+    JE DONE
+
+    CMP AL, 'A'
+    JE INCVOWEL
+    CMP AL, 'E'
+    JE INCVOWEL
+    CMP AL, 'I'
+    JE INCVOWEL
+    CMP AL, 'O'
+    JE INCVOWEL
+    CMP AL, 'U'
+    JE INCVOWEL
+    CMP AL, 'a'
+    JE INCVOWEL
+    CMP AL, 'e'
+    JE INCVOWEL
+    CMP AL, 'i'
+    JE INCVOWEL
+    CMP AL, 'o'
+    JE INCVOWEL
+    CMP AL, 'u'
+    JE INCVOWEL
+
+    JMP NEXTCHAR
+
+INCVOWEL:
+    INC BL
+
+NEXTCHAR:
+    INC SI
+    JMP COUNTLOOP
+
+DONE:
+    MOV VCOUNT, BL
+
+    ; Show result message
+    MOV AH, 09H
+    LEA DX, MSG2
+    INT 21H
+
+    ; Show the count as ASCII
+    MOV AL, VCOUNT
+    ADD AL, 30H ; Convert to ASCII digit
+    MOV DL, AL
+    MOV AH, 02H
+    INT 21H
+
+    ; Exit
+    MOV AH, 4CH
+    INT 21H
+
+CODE ENDS
+END START
