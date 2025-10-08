@@ -1,0 +1,110 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+void display();
+int main() {
+ char line[100], label[20], opcode[20], operand[20];
+ int start_addr = 0, locctr = 0, last_addr = 0, prog_len = 0, sym_addr = 0;
+ char mnemonics[4][10] = {"LDA", "STA", "LDCH", "STCH"};
+ char opcodes[4][10] = {"00", "0C", "50", "54"};
+ FILE *fp_inter = fopen("intermediate.txt", "r");
+ FILE *fp_sym = fopen("symtab.txt", "r");
+ FILE *fp_list = fopen("output.txt", "w");
+ FILE *fp_obj = fopen("objcode.txt", "w");
+ if (!fp_inter || !fp_sym || !fp_list || !fp_obj) {
+ printf("Error opening files.\n");
+ return 1;
+ }
+ // Find program length
+ while (fgets(line, sizeof(line), fp_inter)) {
+ sscanf(line, "%x %s %s %s", &locctr, label, opcode, operand);
+ if (strcmp(opcode, "END") == 0) {
+ last_addr = locctr;
+ break;
+ }
+ }
+ rewind(fp_inter);
+ // Read START record
+ fgets(line, sizeof(line), fp_inter);
+ sscanf(line, "%s %s %s", label, opcode, operand);
+ if (strcmp(opcode, "START") == 0)
+ start_addr = (int)strtol(operand, NULL, 16);
+ prog_len = last_addr - start_addr;
+ fprintf(fp_list, "%s\t%s\t%s\n", label, opcode, operand);
+ fprintf(fp_obj, "H^%-6s^%06X^%06X\n", label, start_addr, prog_len);
+ // Process instructions
+ while (fgets(line, sizeof(line), fp_inter)) {
+ int loc = 0;
+ label[0] = opcode[0] = operand[0] = '\0';
+ int cnt = sscanf(line, "%x %s %s %[^\n]", &loc, label, opcode, operand);
+ if (cnt < 3 || strcmp(opcode, "END") == 0) break;
+ fprintf(fp_list, "%X\t%s\t%s\t%s\t", loc, label[0] ? label : "-", opcode, operand[0] ?
+operand : "-");
+ if (strcmp(opcode, "BYTE") == 0) {
+ int len = strlen(operand) - 3; // exclude C' ' or X' '
+ fprintf(fp_obj, "T^%06X^%02X^", loc, len);
+ for (int i = 2; i < strlen(operand)-1; i++) {
+ fprintf(fp_obj, "%02X", operand[i]); // ASCII HEX
+ fprintf(fp_list, "%X", operand[i]); // Listing
+ }
+ fprintf(fp_list, "\n");
+ }
+ else if (strcmp(opcode, "WORD") == 0) {
+ int val = atoi(operand);
+ fprintf(fp_obj, "T^%06X^03^%06X", loc, val);
+ fprintf(fp_list, "%06X\n", val);
+ }
+ else if (strcmp(opcode, "RESB") == 0 || strcmp(opcode, "RESW") == 0) {
+ fprintf(fp_list, "\n"); // No object code
+ }
+ else {
+ int i = 0;
+ while (i < 4 && strcmp(opcode, mnemonics[i]) != 0) i++;
+ if (i == 4) {
+ printf("Invalid opcode: %s\n", opcode);
+ break;
+ }
+ // Find symbol address
+ rewind(fp_sym);
+ char symbol[20];
+ int found = 0;
+ while (fscanf(fp_sym, "%s %x", symbol, &sym_addr) != EOF) {
+ if (strcmp(operand, symbol) == 0) { found = 1; break; }
+ }
+ if (!found) {
+ printf("Symbol %s not found in symtab\n", operand);
+ break;
+ }
+ fprintf(fp_obj, "T^%06X^03^%s%06X", loc, opcodes[i], sym_addr);
+ fprintf(fp_list, "%s%06X\n", opcodes[i], sym_addr);
+ }
+ }
+ fprintf(fp_list, "%s\t%s\t%s\n", label, opcode, operand);
+ fprintf(fp_obj, "\nE^%06X\n", start_addr);
+ fclose(fp_inter);
+ fclose(fp_sym);
+ fclose(fp_list);
+ fclose(fp_obj);
+ display();
+ return 0;
+}
+void display() {
+ char ch;
+ FILE *fp;
+ printf("\n--- Intermediate File ---\n");
+ fp = fopen("intermediate.txt", "r");
+ while ((ch = fgetc(fp)) != EOF) printf("%c", ch);
+ fclose(fp);
+ printf("\n--- Symbol Table ---\n");
+ fp = fopen("symtab.txt", "r");
+ while ((ch = fgetc(fp)) != EOF) printf("%c", ch);
+ fclose(fp);
+ printf("\n--- Listing File ---\n");
+ fp = fopen("output.txt", "r");
+ while ((ch = fgetc(fp)) != EOF) printf("%c", ch);
+ fclose(fp);
+ printf("\n--- Object Code File ---\n");
+ fp = fopen("objcode.txt", "r");
+ while ((ch = fgetc(fp)) != EOF) printf("%c", ch);
+ fclose(fp);
+} 
