@@ -1,0 +1,76 @@
+#include<stdio.h>
+#include<stdlib.h>
+
+void scan(int req[],int n,int head,int size,int direction){
+    int totalmov = 0;
+    int i,j,index;
+    for(i=0;i<n-1;i++){
+        for(j=0;j<n-i-1;j++){
+            if(req[j]>req[j+1]){
+                int temp = req[j];
+                req[j] = req[j+1];
+                req[j+1]=temp;
+            }
+        }
+    }
+    for(i=0;i<n;i++)
+        if(head<req[i]) break;
+    index = i;
+    
+    printf("movement :  %d",head);
+    if(direction == 1){
+        for(i=index;i<n;i++){
+            totalmov +=abs(req[i] - head);
+            head = req[i];
+            printf("-> %d",head);
+        }
+        totalmov += abs((size - 1) - head);
+        head = size - 1;
+        printf(" -> %d", head);
+
+        for (i = index - 1; i >= 0; i--) {
+            totalmov += abs(req[i] - head);
+            head = req[i];
+            printf(" -> %d", head);
+        }
+    }
+     else {
+        for (i = index - 1; i >= 0; i--) {
+            totalmov += abs(req[i] - head);
+            head = req[i];
+            printf(" -> %d", head);
+        }
+        totalmov += abs(head - 0);
+        head = 0;
+        printf(" -> %d", head);
+
+        for (i = index; i < n; i++) {
+            totalmov += abs(req[i] - head);
+            head = req[i];
+            printf(" -> %d", head);
+        }
+    }
+
+    printf("\nTotal Seek Time = %d", totalmov);
+    printf("\nAverage Seek Time = %.2f\n", (float)totalmov /n);
+    
+}
+int main(){
+    
+    int i,j,n,req[100],head,size,direction,totalmov=0;
+    float avg = 0;
+     printf("Entee the size");
+    scanf("%d",&size);
+    printf("Ente rthe number of request");
+    scanf("%d",&n);
+    printf("Enter the direction ,1 for right and 0 for left");
+    scanf("%d",&direction);
+    printf("Enter the head");
+    scanf("%d",&head);
+    printf("Enter the request....");
+    for(i=0;i<n;i++){
+        scanf("%d",&req[i]);
+    }
+    scan(req,n,head,size,direction);
+    return 0;
+}
