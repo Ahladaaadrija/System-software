@@ -1,9 +1,9 @@
 data segment
-    msg1 db 0Ah,0Dh,"Enter first number : $"
+    msg1 db 0Ah,0Dh,"Enter first number  : $"
     msg2 db 0Ah,0Dh,"Enter second number : $"
     msg3 db 0Ah,0Dh,"Result is : $"
-    n1 db 07h dup(?)
-    n2 db 07h dup(?)
+    n1   db 07h dup(?)
+    n2   db 07h dup(?)
 data ends
 
 code segment
@@ -13,92 +13,88 @@ start:
     mov ax, data
     mov ds, ax
 
-   
-    mov si, offset n1
-    mov di, offset n2
+    ; prepare pointers for input storage
+    mov si, offset n1    ; SI -> n1 (will increment)
+    mov di, offset n2    ; DI -> n2 (will increment)
 
-   
+    ; prompt and read first 4 digits
     lea dx, msg1
     mov ah, 09h
     int 21h
 
-   
-    mov cl, 04h
-
-
-first:
-    mov ah, 01h
+    mov cl, 4
+read1:
+    mov ah, 01h         ; read character
     int 21h
-    sub al, 30h
+    sub al, '0'         ; convert ASCII to number
     mov [si], al
     inc si
     dec cl
-    jnz first
+    jnz read1
 
-   
+    ; prompt and read second 4 digits
     lea dx, msg2
     mov ah, 09h
     int 21h
 
-   
-    mov cl, 04h
-
-
-second:
+    mov cl, 4
+read2:
     mov ah, 01h
     int 21h
-    sub al, 30h
+    sub al, '0'
     mov [di], al
     inc di
     dec cl
-    jnz second
+    jnz read2
+
+    ; perform addition (4-digit + 4-digit)
+    mov cl, 4
     clc
-    mov cl, 04h
 
-
-addition:
-    dec di
+add_loop:
     dec si
+    dec di
     mov al, [si]
     mov bl, [di]
-    adc al, bl
-    mov ah, 00h
-    aaa
-   
+    adc al, bl           ; add digits + carry
+    cmp al, 10
+    jb no_carry_here
+    sub al, 10
+    stc                  ; set carry
+    jmp store_digit
+
+no_carry_here:
+    clc                  ; clear carry
+store_digit:
     mov [di], al
     dec cl
-    jnz addition
+    jnz add_loop
 
-   
+    ; print "Result is : "
     lea dx, msg3
     mov ah, 09h
     int 21h
 
-   
-    mov bh, 00h
-    mov dl, 30h
-    adc dl, 30h
-    cmp dl, 30h
-    je skip
+    ; print carry if any
+    jc print_carry
+    jmp print_digits
 
-   
+print_carry:
+    mov dl, '1'
     mov ah, 02h
     int 21h
 
-skip:
-   
-    mov cl, 04h
-
-
-print:
+print_digits:
+    mov cx, 4
+print_loop:
     mov dl, [di]
-    add dl, 30h
+    add dl, '0'
     mov ah, 02h
     int 21h
     inc di
-    dec cl
-    jnz print
+    loop print_loop
 
+    ; exit
     mov ah, 4Ch
     int 21h
 
